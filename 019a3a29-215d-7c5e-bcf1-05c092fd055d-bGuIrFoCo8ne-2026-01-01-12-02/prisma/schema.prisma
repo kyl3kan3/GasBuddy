@@ -1,0 +1,199 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  orders        Order[]
+  driverProfile DriverProfile?
+  locations     Location[]
+  payments      Payment[]
+  ratingsGiven  Rating[]  @relation("CustomerRatings")
+
+  @@index([email])
+  @@index([role])
+}
+
+model DriverProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  vehicleType     String
+  licensePlate    String
+  licenseNumber   String
+  isAvailable     Boolean  @default(true)
+  rating          Float    @default(5.0)
+  totalDeliveries Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  orders          Order[]
+  ratings         Rating[]
+
+  @@index([userId])
+  @@index([isAvailable])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+
+  // Customer info
+  customerId      String
+  customer        User        @relation(fields: [customerId], references: [id])
+
+  // Delivery info
+  deliveryAddress String
+  deliveryLat     Float
+  deliveryLng     Float
+
+  // Gas details
+  gasType         String      // Regular, Premium, Diesel, etc.
+  quantity        Float       // in gallons
+  pricePerUnit    Float
+  totalAmount     Float
+
+  // Order status
+  status          OrderStatus @default(PENDING)
+
+  // Driver assignment
+  driverId        String?
+  driver          DriverProfile? @relation(fields: [driverId], references: [id])
+
+  // Timestamps
+  orderDate       DateTime    @default(now())
+  assignedAt      DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  locations       Location[]
+  payment         Payment?
+  rating          Rating?
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+  @@index([orderNumber])
+}
+
+model Location {
+  id          String   @id @default(cuid())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  latitude    Float
+  longitude   Float
+  accuracy    Float?
+
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([timestamp])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+
+  orderId         String        @unique
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+
+  amount          Float
+  currency        String        @default("USD")
+
+  status          PaymentStatus @default(PENDING)
+
+  // Stripe integration fields
+  stripePaymentId String?       @unique
+  stripeCustomerId String?
+  stripeSessionId String?       @unique
+
+  // Payment method
+  paymentMethod   String?       // card, cash, etc.
+
+  // Timestamps
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+  @@index([stripePaymentId])
+}
+
+model Rating {
+  id              String   @id @default(cuid())
+
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  customerId      String
+  customer        User     @relation("CustomerRatings", fields: [customerId], references: [id])
+
+  driverId        String
+  driver          DriverProfile @relation(fields: [driverId], references: [id])
+
+  rating          Int      // 1-5 stars
+  comment         String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([driverId])
+  @@index([customerId])
+}
