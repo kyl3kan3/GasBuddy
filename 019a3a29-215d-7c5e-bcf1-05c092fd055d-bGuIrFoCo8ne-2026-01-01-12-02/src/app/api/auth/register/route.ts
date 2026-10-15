@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { signToken } from '@/lib/jwt';
+import { publicRegistrationRole } from '@/lib/security-policy';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password, name, phone, role, vehicleType, licensePlate, licenseNumber } = body;
+    const userRole = publicRegistrationRole(role);
+    if (!userRole) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    }
+    if (userRole === 'DRIVER' && (!vehicleType || !licensePlate)) {
+      return NextResponse.json({ error: 'Driver vehicle details are required' }, { status: 400 });
+    }
 
     if (!email || !password || !name || !phone || !role) {
       return NextResponse.json(
@@ -30,9 +38,6 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Convert role to uppercase for Prisma enum
-    const userRole = role.toUpperCase() as 'CUSTOMER' | 'DRIVER' | 'ADMIN';
-
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -45,7 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
     // If driver, create driver profile
-    if (role === 'driver' && vehicleType && licensePlate) {
+    if (userRole === 'DRIVER') {
       await prisma.driverProfile.create({
         data: {
           userId: user.id,
