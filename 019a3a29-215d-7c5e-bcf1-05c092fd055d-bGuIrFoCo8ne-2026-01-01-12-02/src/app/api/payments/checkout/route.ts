@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/jwt';
 import Stripe from 'stripe';
+import { quoteFuel } from '@/lib/fuel-pricing';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-11-20.acacia',
@@ -67,6 +68,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Reject legacy/tampered orders instead of charging a client-selected total.
+    let quote;
+    try {
+      quote = quoteFuel(order.gasType, order.quantity);
+    } catch {
+      return NextResponse.json({ error: 'Order must be requoted' }, { status: 409 });
+    }
+    if (order.pricePerUnit !== quote.pricePerUnit || order.totalAmount !== quote.totalAmount) {
+      return NextResponse.json({ error: 'Order must be requoted' }, { status: 409 });
+    }
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest) {
               name: `Fuel Delivery - Order #${order.orderNumber}`,
               description: `${order.quantity} gallons of ${order.gasType} fuel`,
             },
-            unit_amount: Math.round(order.totalAmount * 100), // Convert to cents
+            unit_amount: quote.totalCents,
           },
           quantity: 1,
         },

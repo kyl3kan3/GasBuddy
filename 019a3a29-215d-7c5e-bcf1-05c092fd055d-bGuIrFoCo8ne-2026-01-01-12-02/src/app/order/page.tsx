@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import MapPicker from '@/components/MapPicker';
+import { FUEL_TYPES, SERVICE_FEE_CENTS } from '@/lib/fuel-pricing';
 
 export default function OrderPage() {
   const router = useRouter();
@@ -21,16 +22,11 @@ export default function OrderPage() {
     notes: '',
   });
 
-  const gasTypes = [
-    { value: 'regular', label: 'Regular', price: 3.45 },
-    { value: 'plus', label: 'Plus', price: 3.75 },
-    { value: 'premium', label: 'Premium', price: 4.05 },
-    { value: 'diesel', label: 'Diesel', price: 4.25 },
-  ];
+  const gasTypes = FUEL_TYPES;
 
   const selectedGasType = gasTypes.find(g => g.value === formData.gasType);
   const totalPrice = selectedGasType ? selectedGasType.price * formData.quantity : 0;
-  const serviceFee = 4.99;
+  const serviceFee = SERVICE_FEE_CENTS / 100;
   const grandTotal = totalPrice + serviceFee;
 
   const handleLocationSelect = (lat: number, lng: number) => {
@@ -70,8 +66,6 @@ export default function OrderPage() {
           deliveryLat: formData.deliveryLat,
           deliveryLng: formData.deliveryLng,
           deliveryAddress: formData.deliveryAddress,
-          pricePerUnit: selectedGasType?.price,
-          totalAmount: grandTotal,
           notes: formData.notes,
         }),
       });
