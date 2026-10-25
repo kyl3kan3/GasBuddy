@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { getDefaultMapTileLayer } from '@/lib/map-tiles';
 
 interface MapPickerProps {
   onLocationSelect: (lat: number, lng: number, address?: string) => void;
@@ -25,8 +26,9 @@ export default function MapPicker({ onLocationSelect, initialLat = 40.7128, init
     if (!mapRef.current) {
       const map = L.map('map').setView([initialLat, initialLng], 13);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+      const tiles = getDefaultMapTileLayer();
+      L.tileLayer(tiles.url, {
+        attribution: tiles.attribution,
       }).addTo(map);
 
       // Custom marker icon
