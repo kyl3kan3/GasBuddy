@@ -216,9 +216,14 @@ npm install @sendgrid/mail
 ```
 
 **Step 4: Add to .env**
+
+Create or update `.env` (see `.env.example`). **Do not commit real keys** — use a placeholder locally and set the real value in your deployment secrets.
+
 ```env
-NEXT_PUBLIC_GOOGLE_MAPS_KEY="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+NEXT_PUBLIC_GOOGLE_MAPS_KEY="your_google_maps_api_key"
 ```
+
+The app reads this via `process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY` (see `src/lib/env.ts`). Maps default to OpenStreetMap until you configure Google and enable the integration in `src/lib/map-tiles.ts`.
 
 ---
 

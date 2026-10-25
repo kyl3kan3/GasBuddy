@@ -7,6 +7,7 @@ import { useToast } from '@/contexts/ToastContext';
 import DriverLocationTracker from '@/components/DriverLocationTracker';
 import LiveTrackingMap from '@/components/LiveTrackingMap';
 import L from 'leaflet';
+import { getDefaultMapTileLayer } from '@/lib/map-tiles';
 
 interface OrderDetails {
   id: string;
@@ -87,8 +88,9 @@ export default function OrderTrackingPage() {
     if (!mapRef.current) {
       const map = L.map('tracking-map').setView([order.deliveryLat, order.deliveryLng], 13);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+      const tiles = getDefaultMapTileLayer();
+      L.tileLayer(tiles.url, {
+        attribution: tiles.attribution,
       }).addTo(map);
 
       const customIcon = L.icon({
