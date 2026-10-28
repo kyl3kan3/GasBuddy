@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import L from 'leaflet';
+import { getDefaultMapTileLayer } from '@/lib/map-tiles';
 
 interface TrackingData {
   order: {
@@ -112,8 +113,9 @@ export default function LiveTrackingMap({ orderId }: LiveTrackingMapProps) {
 
     const map = L.map('live-tracking-map').setView([centerLat, centerLng], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    const tiles = getDefaultMapTileLayer();
+    L.tileLayer(tiles.url, {
+      attribution: tiles.attribution,
     }).addTo(map);
 
     mapRef.current = map;

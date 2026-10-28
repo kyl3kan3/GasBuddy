@@ -18,6 +18,9 @@ A modern, full-stack web application for on-demand fuel delivery that connects c
    STRIPE_SECRET_KEY="sk_test_..."
    STRIPE_WEBHOOK_SECRET="whsec_..."
    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+
+   # Optional — see .env.example
+   NEXT_PUBLIC_GOOGLE_MAPS_KEY="your_google_maps_api_key"
    ```
 
 3. **Set Up Database**
