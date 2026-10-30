@@ -4,6 +4,9 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DEMO_SEED !== '1') {
+    throw new Error('Demo accounts are disabled. Set ALLOW_DEMO_SEED=1 only for an isolated development database.');
+  }
   console.log('Seeding database...');
 
   // Create a test customer

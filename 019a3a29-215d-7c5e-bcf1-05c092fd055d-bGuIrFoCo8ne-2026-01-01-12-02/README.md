@@ -14,7 +14,7 @@ A modern, full-stack web application for on-demand fuel delivery that connects c
    Create a `.env` file in the root directory:
    ```env
    DATABASE_URL="prisma+postgres://..."
-   JWT_SECRET="your-secret-key-here"
+   NEXTAUTH_SECRET="<generate-at-least-32-random-characters>"
    STRIPE_SECRET_KEY="sk_test_..."
    STRIPE_WEBHOOK_SECRET="whsec_..."
    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
@@ -295,3 +295,13 @@ For issues or questions:
 ---
 
 Built with ❤️ using Next.js, React, and TypeScript
+
+## Security configuration
+
+Set `NEXTAUTH_SECRET` to at least 32 random characters before running the app. `JWT_SECRET` is not used. Rotate the signing secret and invalidate sessions if the old fallback was deployed. Public signup accepts customer and driver accounts only. Provision administrators with the restricted `scripts/create-admin.ts` script using `ADMIN_EMAIL`, `ADMIN_PASSWORD` (at least 16 characters), and optional `ADMIN_NAME`; never use a published default password.
+
+Fuel totals are calculated on the server using the catalog in `src/lib/fuel-pricing.ts`, including the existing $4.99 fee. Existing unpaid orders whose totals differ from that catalog must be recreated; they are blocked at checkout. Review or expire any previously issued Stripe checkout sessions separately.
+
+Run offline security tests with Node 22.6+: `node --experimental-vm-modules --test tests/security.test.mjs`.
+
+Demo seeding refuses production and requires explicit `ALLOW_DEMO_SEED=1` for an isolated development database. Remove any previously seeded demo/admin accounts from a production deployment.

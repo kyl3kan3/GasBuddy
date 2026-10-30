@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/jwt';
+import { quoteFuel } from '@/lib/fuel-pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,9 +30,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { gasType, quantity, deliveryLat, deliveryLng, deliveryAddress, pricePerUnit, totalAmount, notes } = body;
+    const { gasType, quantity, deliveryLat, deliveryLng, deliveryAddress } = body;
+    let quote;
+    try {
+      quote = quoteFuel(gasType, quantity);
+    } catch {
+      return NextResponse.json({ error: 'Invalid fuel type or quantity' }, { status: 400 });
+    }
 
-    if (!gasType || !quantity || !deliveryLat || !deliveryLng || !deliveryAddress) {
+    if (typeof deliveryAddress !== 'string' || !deliveryAddress.trim() ||
+        typeof deliveryLat !== 'number' || !Number.isFinite(deliveryLat) || Math.abs(deliveryLat) > 90 ||
+        typeof deliveryLng !== 'number' || !Number.isFinite(deliveryLng) || Math.abs(deliveryLng) > 180) {
       return NextResponse.json(
         { error: 'Missing fields', message: 'Required fields are missing' },
         { status: 400 }
@@ -46,12 +55,12 @@ export async function POST(request: NextRequest) {
         orderNumber,
         customerId: user.id,
         gasType,
-        quantity: parseFloat(quantity.toString()),
+        quantity,
         deliveryAddress,
         deliveryLat: parseFloat(deliveryLat.toString()),
         deliveryLng: parseFloat(deliveryLng.toString()),
-        pricePerUnit: parseFloat(pricePerUnit.toString()),
-        totalAmount: parseFloat(totalAmount.toString()),
+        pricePerUnit: quote.pricePerUnit,
+        totalAmount: quote.totalAmount,
         status: 'PENDING',
       },
       include: {
